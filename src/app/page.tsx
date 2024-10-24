@@ -47,6 +47,7 @@ export default function Example() {
           Het erf waarop onze boerderij staat is al in gebruik sinds 1432.
         </p>
         <Link
+          href="/dashboard"
           onClick={handleClick}
           className="cursor-pointer w-full md:w-auto mb-14 inline-flex items-center justify-center py-2 px-6 text-base  text-center text-white rounded-full bg-[#374C69] shadow-xs hover:bg-[#374C69]/90 transition-all duration-500"
         >
@@ -69,7 +70,7 @@ export default function Example() {
           </svg>
         </Link>
         <div className="flex justify-center">
-          <img src="/images/front_bg.png" alt="Dashboard image" />
+          <Image src="/images/front_bg.png" alt="Dashboard image" width={1000} height={1000} />
         </div>
       </div>
     </section>
