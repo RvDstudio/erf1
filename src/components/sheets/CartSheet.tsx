@@ -47,14 +47,14 @@ const CartSheet = () => {
                     )}
                     <div className="flex items-center space-x-2 mt-2">
                       <button
-                        onClick={() => updateQuantity(item.id, -1)}
+                        onClick={() => updateQuantity(Number(item.id), 'decrease')}
                         className="bg-gray-200 text-gray-600 px-2 rounded"
                       >
                         −
                       </button>
                       <div>{item.quantity}</div>
                       <button
-                        onClick={() => updateQuantity(item.id, 'increase')}
+                        onClick={() => updateQuantity(Number(item.id), 'increase')}
                         className="bg-gray-200 text-gray-600 px-2 rounded"
                       >
                         +
@@ -62,7 +62,7 @@ const CartSheet = () => {
                     </div>
                   </div>
                 </div>
-                <button onClick={() => removeFromCart(item.id)} className="text-erf1-700 hover:text-erf1-600">
+                <button onClick={() => removeFromCart(Number(item.id))} className="text-erf1-700 hover:text-erf1-600">
                   <Trash size={22} />
                 </button>
               </li>
