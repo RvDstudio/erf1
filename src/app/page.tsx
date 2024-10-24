@@ -19,7 +19,7 @@ export default function Example() {
       }
     };
     checkAuth();
-  }, []);
+  }, [supabase.auth]);
 
   const handleClick = () => {
     if (isLoggedIn) {

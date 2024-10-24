@@ -44,11 +44,11 @@ export const useCartStore = create<CartState>()(
         }),
       removeFromWishlist: (id) =>
         set((state) => ({
-          wishlist: state.wishlist.filter((i) => i.id !== id),
+          wishlist: state.wishlist.filter((i) => i.id !== id.toString()),
         })),
       removeFromCart: (id) =>
         set((state) => ({
-          items: state.items.filter((i) => i.id !== id),
+          items: state.items.filter((i) => i.id !== id.toString()),
         })),
       clearCart: () => set({ items: [] }),
       toggleCart: (open) =>
@@ -58,7 +58,7 @@ export const useCartStore = create<CartState>()(
       updateQuantity: (id, action) =>
         set((state) => ({
           items: state.items.map((item) =>
-            item.id === id
+            item.id === id.toString()
               ? {
                   ...item,
                   quantity: action === 'increase' ? item.quantity + 1 : Math.max(1, item.quantity - 1),
