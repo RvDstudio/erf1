@@ -53,7 +53,7 @@ const WishlistPage = () => {
                   </td>
                   <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm text-right">
                     <button
-                      onClick={() => removeFromWishlist(product.id)}
+                      onClick={() => removeFromWishlist(Number(product.id))}
                       className="inline-flex items-center px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
                     >
                       <Trash className="h-4 w-4 mr-1" />
