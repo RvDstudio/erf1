@@ -13,17 +13,22 @@ interface Item {
   imageUrl?: string;
 }
 
+interface InvoiceItem {
+  product_name: string;
+  price: number;
+  quantity: number;
+  image_url?: string;
+}
+
 export async function POST(request: Request) {
   try {
-    const { userId, items }: { userId: string; items: Item[] } = await request.json();
+    const { userId, items, invoiceId }: { userId: string; items: Item[]; invoiceId?: string } = await request.json();
 
-    if (!userId || !items || items.length === 0) {
-      throw new Error('Missing required userId or items in the request body.');
+    if (!userId || (!items && !invoiceId)) {
+      throw new Error('Missing required userId, items, or invoiceId in the request body.');
     }
 
-    console.log('Received items:', items);
-
-    const lineItems = items.map((item: Item) => ({
+    let lineItems = items?.map((item: Item) => ({
       price_data: {
         currency: 'eur',
         product_data: {
@@ -35,53 +40,37 @@ export async function POST(request: Request) {
       quantity: item.quantity,
     }));
 
-    // Calculate total price in cents, then convert to dollars for Supabase
-    const totalPriceInCents = lineItems.reduce(
-      (total: number, item) => total + item.price_data.unit_amount * item.quantity,
-      0
-    );
+    if (invoiceId) {
+      // Fetch the invoice and its items from the database
+      const { data: invoiceData, error: invoiceError } = await supabase
+        .from('invoices')
+        .select('*, invoice_items(*)')
+        .eq('id', invoiceId)
+        .single();
 
-    const totalPriceInDollars = totalPriceInCents / 100; // Convert to dollars for storage
+      if (invoiceError || !invoiceData) {
+        console.error('Error fetching invoice:', invoiceError);
+        throw new Error('Failed to fetch invoice data.');
+      }
 
-    // Insert main order details into Supabase `orders` table
-    const { data: orderData, error: orderError } = await supabase
-      .from('orders')
-      .insert([
-        {
-          user_id: userId,
-          total_price: totalPriceInDollars,
-          status: 'pending',
-          created_at: new Date().toISOString(),
+      lineItems = invoiceData.invoice_items.map((item: InvoiceItem) => ({
+        price_data: {
+          currency: 'eur',
+          product_data: {
+            name: item.product_name,
+            images: item.image_url ? [item.image_url] : [], // Add image URL if available
+          },
+          unit_amount: Math.round(item.price * 100), // Convert to cents for Stripe
         },
-      ])
-      .select('id'); // Select `id` to get the new order ID
-
-    if (orderError || !orderData || orderData.length === 0) {
-      console.error('Error saving order to Supabase:', orderError);
-      throw new Error('Failed to save order to database');
+        quantity: item.quantity,
+      }));
     }
 
-    const orderId = orderData[0].id; // Get the order ID of the newly created order
-
-    // Insert each item from the order into the `order_items` table
-    const orderItems = items.map((item) => ({
-      order_id: orderId,
-      product_name: item.name,
-      quantity: item.quantity,
-      price: item.unit_amount,
-      image_url: item.imageUrl || '',
-    }));
-
-    console.log('Mapped order items:', orderItems);
-
-    const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
-
-    if (itemsError) {
-      console.error('Error saving order items to Supabase:', itemsError);
-      throw new Error('Failed to save order items to database');
+    if (!lineItems || lineItems.length === 0) {
+      throw new Error('No items found for checkout session.');
     }
 
-    // Now create the Stripe Checkout Session and add orderId to metadata
+    // Now create the Stripe Checkout Session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: lineItems,
@@ -90,11 +79,11 @@ export async function POST(request: Request) {
       cancel_url: `${request.headers.get('origin')}/dashboard/cancel`,
       metadata: {
         userId: userId, // Include user ID
-        orderId: orderId.toString(), // Include order ID as string in metadata
+        invoiceId: invoiceId || '', // Include invoice ID if provided
       },
     });
 
-    console.log('Checkout session created, and order with items saved to Supabase.');
+    console.log('Checkout session created.');
     return NextResponse.json({ sessionId: session.id });
   } catch (error) {
     console.error('Checkout session error:', (error as Error).message);
