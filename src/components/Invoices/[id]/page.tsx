@@ -1,4 +1,4 @@
-// Path: src/app/dashboard/invoices_history/[id]/page.tsx
+// src\components\Invoices\[id]\page.tsx
 'use client';
 
 import { useParams } from 'next/navigation';
@@ -19,7 +19,7 @@ interface Invoice {
   id: string; // Unique ID of the invoice
   created_at: string; // Timestamp when the invoice was created
   total_amount: number; // Total amount of the invoice
-  status: string; // Status of the invoice (e.g., "paid", "pending")
+  status: string; // Status of the invoice (e.g., "betaald", "niet betaald")
   invoice_items: InvoiceItem[]; // List of items in the invoice
 }
 
