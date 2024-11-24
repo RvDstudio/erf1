@@ -94,7 +94,7 @@ const CheckoutPage = () => {
           },
           body: JSON.stringify({
             userId,
-            status: 'pending',
+            status: 'niet betaald',
             totalAmount: total,
             items: items.map((item) => ({
               productName: item.name,

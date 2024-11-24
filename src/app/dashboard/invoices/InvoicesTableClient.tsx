@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import jsPDF from 'jspdf';
 import { loadStripe } from '@stripe/stripe-js';
+import { useCartStore } from '@/store/cartStore';
 
 type InvoiceItem = {
   id: string;
@@ -39,6 +40,7 @@ export function InvoicesTableClient({ invoices, userId }: { invoices: Invoice[];
             unit_amount: item.price,
             quantity: item.quantity,
           })),
+          invoiceId: invoice.id, // Pass invoice ID as metadata
         }),
       });
 
@@ -48,6 +50,8 @@ export function InvoicesTableClient({ invoices, userId }: { invoices: Invoice[];
 
       const { sessionId } = await response.json();
       await stripe?.redirectToCheckout({ sessionId });
+
+      useCartStore.getState().clearCart(); // This ensures the cart is emptied
     } catch (error) {
       console.error('Stripe payment error:', error);
     }

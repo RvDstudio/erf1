@@ -49,7 +49,7 @@ export async function POST(request: Request) {
       .insert([
         {
           user_id: userId,
-          status,
+          status: 'Niet Betaald', // Initial status
           total_amount: totalAmount,
         },
       ])

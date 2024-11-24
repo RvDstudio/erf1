@@ -6,15 +6,18 @@ import { useEffect, useState } from 'react';
 import Confetti from 'react-confetti';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { useCartStore } from '@/store/cartStore';
 
 const SuccessPage: React.FC = () => {
   const router = useRouter();
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const clearCart = useCartStore((state) => state.clearCart);
 
   useEffect(() => {
     // Set width and height only on the client side
     setDimensions({ width: window.innerWidth, height: window.innerHeight });
-  }, []);
+    clearCart(); // Clear the cart when the success page loads
+  }, [clearCart]);
 
   return (
     <div className="relative flex flex-col items-center justify-center h-[100%] w-full">
