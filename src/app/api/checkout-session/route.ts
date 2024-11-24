@@ -1,4 +1,3 @@
-// Path: src\app\api\checkout-session\route.ts
 import Stripe from 'stripe';
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
@@ -13,22 +12,55 @@ interface Item {
   imageUrl?: string;
 }
 
-interface InvoiceItem {
-  product_name: string;
-  price: number;
-  quantity: number;
-  image_url?: string;
-}
-
 export async function POST(request: Request) {
   try {
-    const { userId, items, invoiceId }: { userId: string; items: Item[]; invoiceId?: string } = await request.json();
+    const { userId, items }: { userId: string; items: Item[] } = await request.json();
 
-    if (!userId || (!items && !invoiceId)) {
-      throw new Error('Missing required userId, items, or invoiceId in the request body.');
+    if (!userId || !items) {
+      throw new Error('Missing required userId or items in the request body.');
     }
 
-    let lineItems = items?.map((item: Item) => ({
+    // Calculate the total price
+    const totalAmount = items.reduce((acc, item) => acc + item.unit_amount * item.quantity, 0);
+
+    // Insert into the `orders` table
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .insert([
+        {
+          user_id: userId,
+          status: 'Niet Betaald', // Initial status
+          total_price: totalAmount, // Total price for the order
+        },
+      ])
+      .select()
+      .single();
+
+    if (orderError || !order) {
+      console.error('Error saving order:', orderError);
+      throw new Error('Failed to save order');
+    }
+
+    const orderId = order.id;
+
+    // Insert items into `order_items` table
+    const orderItems = items.map((item) => ({
+      order_id: orderId,
+      product_name: item.name,
+      quantity: item.quantity,
+      price: item.unit_amount,
+      image_url: item.imageUrl || '/fallback-image.jpg',
+    }));
+
+    const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
+
+    if (itemsError) {
+      console.error('Error saving order items:', itemsError);
+      throw new Error('Failed to save order items');
+    }
+
+    // Create Stripe checkout session
+    const lineItems = items.map((item: Item) => ({
       price_data: {
         currency: 'eur',
         product_data: {
@@ -40,37 +72,6 @@ export async function POST(request: Request) {
       quantity: item.quantity,
     }));
 
-    if (invoiceId) {
-      // Fetch the invoice and its items from the database
-      const { data: invoiceData, error: invoiceError } = await supabase
-        .from('invoices')
-        .select('*, invoice_items(*)')
-        .eq('id', invoiceId)
-        .single();
-
-      if (invoiceError || !invoiceData) {
-        console.error('Error fetching invoice:', invoiceError);
-        throw new Error('Failed to fetch invoice data.');
-      }
-
-      lineItems = invoiceData.invoice_items.map((item: InvoiceItem) => ({
-        price_data: {
-          currency: 'eur',
-          product_data: {
-            name: item.product_name,
-            images: item.image_url ? [item.image_url] : [], // Add image URL if available
-          },
-          unit_amount: Math.round(item.price * 100), // Convert to cents for Stripe
-        },
-        quantity: item.quantity,
-      }));
-    }
-
-    if (!lineItems || lineItems.length === 0) {
-      throw new Error('No items found for checkout session.');
-    }
-
-    // Now create the Stripe Checkout Session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: lineItems,
@@ -78,12 +79,11 @@ export async function POST(request: Request) {
       success_url: `${request.headers.get('origin')}/dashboard/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${request.headers.get('origin')}/dashboard/cancel`,
       metadata: {
-        userId: userId, // Include user ID
-        invoiceId: invoiceId || '', // Include invoice ID if provided
+        userId,
+        orderId, // Pass the order ID for later use in webhook
       },
     });
 
-    console.log('Checkout session created.');
     return NextResponse.json({ sessionId: session.id });
   } catch (error) {
     console.error('Checkout session error:', (error as Error).message);
