@@ -13,7 +13,6 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Missing user_id in query parameters.' }, { status: 400 });
     }
 
-    // Fetch invoices with related items
     const { data: invoices, error: invoicesError } = await supabase
       .from('invoices')
       .select('*, invoice_items(*)')
@@ -23,7 +22,6 @@ export async function GET(request: Request) {
       throw new Error('Failed to fetch invoices.');
     }
 
-    // Format response data
     const formattedInvoices = invoices.map((invoice) => ({
       ...invoice,
       items: invoice.invoice_items || [],
@@ -33,5 +31,55 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error('Invoice fetching error:', error);
     return NextResponse.json({ error: (error as Error).message || 'Failed to fetch invoices.' }, { status: 500 });
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const { userId, status, totalAmount, items } = body;
+
+    if (!userId || !status || !totalAmount || !items || !Array.isArray(items)) {
+      return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 });
+    }
+
+    // Insert invoice
+    const { data: newInvoice, error: invoiceError } = await supabase
+      .from('invoices')
+      .insert([
+        {
+          user_id: userId,
+          status,
+          total_amount: totalAmount,
+        },
+      ])
+      .select()
+      .single();
+
+    if (invoiceError) {
+      throw new Error('Failed to insert invoice.');
+    }
+
+    // Insert related invoice items
+    const invoiceItems = items.map((item) => ({
+      invoice_id: newInvoice.id,
+      product_name: item.productName,
+      quantity: item.quantity,
+      price: item.price,
+      image_url: item.imageUrl,
+    }));
+
+    const { error: itemsError } = await supabase
+      .from('invoice_items')
+      .insert(invoiceItems);
+
+    if (itemsError) {
+      throw new Error('Failed to insert invoice items.');
+    }
+
+    return NextResponse.json({ message: 'Invoice created successfully.', invoice: newInvoice }, { status: 201 });
+  } catch (error) {
+    console.error('Invoice creation error:', error);
+    return NextResponse.json({ error: (error as Error).message || 'Failed to create invoice.' }, { status: 500 });
   }
 }

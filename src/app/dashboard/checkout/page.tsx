@@ -14,14 +14,13 @@ const CheckoutPage = () => {
   const items = useCartStore((state) => state.items);
   const updateQuantity = useCartStore((state) => state.updateQuantity);
   const [userId, setUserId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false); // Loading state for button
-  const [error, setError] = useState<string | null>(null); // Error state for feedback
-  const [isUitgekookt, setIsUitgekookt] = useState(false); // Track if user has the role
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isUitgekookt, setIsUitgekookt] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'invoice'>('stripe');
   const supabase = createClient();
-  const router = useRouter(); // For navigation
+  const router = useRouter();
 
-  // Retrieve user session and set userId
   useEffect(() => {
     const fetchSession = async () => {
       setLoading(true);
@@ -29,23 +28,25 @@ const CheckoutPage = () => {
       if (sessionError) {
         setError('Failed to retrieve session.');
         console.error('Session error:', sessionError);
-      } else {
-        setUserId(sessionData.session?.user.id || null);
+        setLoading(false);
+        return;
+      }
 
-        // Fetch user profile to check for isUitgekookt role
-        if (sessionData.session?.user.id) {
-          const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('isUitgekookt')
-            .eq('id', sessionData.session.user.id)
-            .single();
+      const userId = sessionData.session?.user.id;
+      setUserId(userId || null);
 
-          if (profileError) {
-            setError('Failed to retrieve user profile.');
-            console.error('Profile error:', profileError);
-          } else {
-            setIsUitgekookt(profileData?.isUitgekookt || false);
-          }
+      if (userId) {
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('isUitgekookt')
+          .eq('id', userId)
+          .single();
+
+        if (profileError) {
+          setError('Failed to retrieve user profile.');
+          console.error('Profile error:', profileError);
+        } else {
+          setIsUitgekookt(profileData?.isUitgekookt || false);
         }
       }
       setLoading(false);
@@ -53,8 +54,7 @@ const CheckoutPage = () => {
     fetchSession();
   }, [supabase]);
 
-  // Apply discount if user isUitgekookt
-  const discountRate = isUitgekookt ? 0.1 : 0; // 10% discount for isUitgekookt users
+  const discountRate = isUitgekookt ? 0.1 : 0;
   const subtotal = items.reduce((acc, item) => acc + item.price * item.quantity, 0);
   const discount = subtotal * discountRate;
   const total = subtotal - discount;
@@ -63,53 +63,52 @@ const CheckoutPage = () => {
     setLoading(true);
     try {
       if (paymentMethod === 'stripe') {
-        // Stripe checkout
         const response = await fetch('/api/checkout-session', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            userId: userId,
+            userId,
             items: items.map((item) => ({
               name: item.name,
               unit_amount: item.price,
               quantity: item.quantity,
-              imageUrl: item.imageUrl || '',
+              imageUrl: item.imageUrl || '/fallback-image.jpg',
             })),
           }),
         });
 
         if (!response.ok) {
-          throw new Error(`API responded with status ${response.status}: ${response.statusText}`);
+          throw new Error(`API responded with status ${response.status}`);
         }
 
         const data = await response.json();
         const stripe = await stripePromise;
         await stripe?.redirectToCheckout({ sessionId: data.sessionId });
       } else if (paymentMethod === 'invoice') {
-        // Invoice request
         const response = await fetch('/api/userInvoices', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            userId: userId,
+            userId,
+            status: 'pending',
+            totalAmount: total,
             items: items.map((item) => ({
-              name: item.name,
-              unit_amount: item.price,
+              productName: item.name,
               quantity: item.quantity,
-              imageUrl: item.imageUrl || '',
+              price: item.price,
+              imageUrl: item.imageUrl || '/fallback-image.jpg',
             })),
           }),
         });
 
         if (!response.ok) {
-          throw new Error(`API responded with status ${response.status}: ${response.statusText}`);
+          throw new Error(`API responded with status ${response.status}`);
         }
 
-        // Navigate to success page
         router.push('/dashboard/success');
       }
     } catch (error) {
@@ -139,7 +138,7 @@ const CheckoutPage = () => {
                   <tr key={item.id} className="border-b last:border-b-0">
                     <td className="py-4 flex items-center space-x-4">
                       <Image
-                        src={item.imageUrl}
+                        src={item.imageUrl || '/fallback-image.jpg'}
                         alt={item.name}
                         className="w-16 h-16 object-cover rounded"
                         width={64}
@@ -155,6 +154,7 @@ const CheckoutPage = () => {
                         <button onClick={() => updateQuantity(item.id, 'decrease')} className="p-1 border rounded">
                           <Minus size={16} />
                         </button>
+                        <span>{item.quantity}</span>
                         <button onClick={() => updateQuantity(item.id, 'increase')} className="p-1 border rounded">
                           <Plus size={16} />
                         </button>
