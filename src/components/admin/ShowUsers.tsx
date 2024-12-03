@@ -50,8 +50,7 @@ export default function ShowUsers() {
   if (loading) return <p>Loading users...</p>;
 
   return (
-    <div className="pt-4">
-      <h2 className="text-xl mb-4 text-erf1-500">Beheer gebruikersrollen</h2>
+    <div className="">
       <table className="w-full text-left border-collapse">
         <thead>
           <tr>

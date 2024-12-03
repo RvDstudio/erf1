@@ -4,6 +4,7 @@
 import SummaryCard from '@/components/SummaryCard';
 import ShowUsers from '@/components/admin/ShowUsers';
 import OrdersTable from '@/components/admin/OrdersTable';
+import InvoicesTable from '@/components/admin/InvoicesTable';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
 export default function AdminPage() {
@@ -93,12 +94,16 @@ export default function AdminPage() {
           <TabsList>
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="orders">Orders</TabsTrigger>
+            <TabsTrigger value="invoices">Invoices</TabsTrigger>
           </TabsList>
           <TabsContent value="users">
             <ShowUsers />
           </TabsContent>
           <TabsContent value="orders">
             <OrdersTable />
+          </TabsContent>
+          <TabsContent value="invoices">
+            <InvoicesTable />
           </TabsContent>
         </Tabs>
       </div>

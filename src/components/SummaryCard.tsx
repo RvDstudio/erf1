@@ -16,22 +16,41 @@ const SummaryCard: FC<SummaryCardProps> = ({ title, category, description, icon 
 
   useEffect(() => {
     const fetchData = async () => {
-      let data;
+      let orderData;
+      let invoiceData;
 
       // Fetch the ordered quantities based on the category
       if (category === 'zuivel') {
-        data = await supabase.from('order_details').select('quantity').not('zuivel_product', 'is', null);
+        orderData = await supabase.from('order_details').select('quantity').not('zuivel_product', 'is', null);
+        invoiceData = await supabase
+          .from('invoice_items')
+          .select('quantity')
+          .eq('product_name', 'Hopjesvla 565ml')
+          .or('product_name.eq.Kwark met vruchten 565ml');
       } else if (category === 'kaas') {
-        data = await supabase.from('order_details').select('quantity').not('kaas_product', 'is', null);
+        orderData = await supabase.from('order_details').select('quantity').not('kaas_product', 'is', null);
+        invoiceData = await supabase
+          .from('invoice_items')
+          .select('quantity')
+          .ilike('product_name', '%kruidenkaas%')
+          .or('product_name.ilike.%kaas%');
       } else if (category === 'vlees') {
-        data = await supabase.from('order_details').select('quantity').not('vlees_product', 'is', null);
+        orderData = await supabase.from('order_details').select('quantity').not('vlees_product', 'is', null);
+        invoiceData = await supabase.from('invoice_items').select('quantity').ilike('product_name', '%vlees%');
       }
 
-      // Sum the quantities if data is available
-      if (data?.data) {
-        const totalQuantity = data.data.reduce((sum, item) => sum + item.quantity, 0);
-        setCount(totalQuantity);
+      // Sum the quantities from both orders and invoices
+      let totalQuantity = 0;
+
+      if (orderData?.data) {
+        totalQuantity += orderData.data.reduce((sum, item) => sum + item.quantity, 0);
       }
+
+      if (invoiceData?.data) {
+        totalQuantity += invoiceData.data.reduce((sum, item) => sum + item.quantity, 0);
+      }
+
+      setCount(totalQuantity);
     };
 
     fetchData();

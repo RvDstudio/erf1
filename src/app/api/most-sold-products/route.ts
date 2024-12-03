@@ -1,4 +1,3 @@
-// Path: src/app/api/most-sold-products/route.ts
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 

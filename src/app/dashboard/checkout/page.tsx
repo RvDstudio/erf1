@@ -181,7 +181,7 @@ const CheckoutPage = () => {
             </div>
             <div className="flex justify-between font-bold mb-4 text-gray-600">
               <span>Totaalbedrag</span>
-              <span>€{total.toFixed(2)}</span>
+              <span>€ {total.toFixed(2)}</span>
             </div>
             <div className="mb-4">
               <label className="block text-xl text-erf1-500 mb-4">Betaalmethode:</label>
