@@ -56,8 +56,8 @@ export default function OrdersTable() {
                 <span
                   className={
                     order.status.toLowerCase() === 'niet betaald'
-                      ? 'bg-red-100 text-red-600 px-2 py-1 rounded-md font-medium text-xs'
-                      : 'bg-green-100 text-green-600 px-2 py-1 rounded-md font-medium text-xs'
+                      ? 'bg-red-600 text-red-600 px-2 py-1 rounded-md font-medium text-xs'
+                      : 'bg-green-600 text-white px-2 py-1 rounded-md font-medium text-xs'
                   }
                 >
                   {order.status}

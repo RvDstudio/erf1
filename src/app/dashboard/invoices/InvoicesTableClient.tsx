@@ -101,7 +101,17 @@ export function InvoicesTableClient({ invoices, userId }: { invoices: Invoice[];
             </TableCell>
             <TableCell>{new Date(invoice.created_at).toLocaleDateString()}</TableCell>
             <TableCell>€{invoice.total_amount.toFixed(2)}</TableCell>
-            <TableCell>{invoice.status}</TableCell>
+            <TableCell>
+              <span
+                className={
+                  invoice.status.toLowerCase() === 'niet betaald'
+                    ? 'bg-red-500 text-white px-2 py-2 rounded-md font-medium text-xs'
+                    : 'bg-green-500 text-white px-2 py-2 rounded-md font-medium text-xs'
+                }
+              >
+                {invoice.status}
+              </span>
+            </TableCell>
             <TableCell className="space-x-2">
               <Button onClick={() => generateInvoicePDF(invoice)} className="text-white bg-erf1-700 hover:bg-erf1-600">
                 PDF

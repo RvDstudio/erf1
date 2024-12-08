@@ -67,7 +67,17 @@ export function OrdersTableClient({ orders }: { orders: Order[] }) {
               </TableCell>
               <TableCell>{new Date(order.created_at).toLocaleDateString()}</TableCell>
               <TableCell>€ {order.total_price.toFixed(2)}</TableCell>
-              <TableCell>{order.status}</TableCell>
+              <TableCell>
+                <span
+                  className={
+                    order.status.toLowerCase() === 'niet betaald'
+                      ? 'bg-red-500 text-white px-2 py-2 rounded-md font-medium text-xs'
+                      : 'bg-green-500 text-white px-2 py-2 rounded-md font-medium text-xs'
+                  }
+                >
+                  {order.status}
+                </span>
+              </TableCell>
               <TableCell>
                 <Button onClick={() => generatePDF(order)} className="text-white bg-erf1-700 hover:bg-erf1-600">
                   PDF
